@@ -26,7 +26,9 @@ def getPassword(Pass, ParentsPass):
 
 def verifyPassParent(Pass, ParentsPass):
     count = 0
-    Pass = input('Enter your password again to verify you are parents: ')
+    Pass = input('Enter your password again to verify you are parents or Enter STOP to stop program: ')
+    if Pass == 'STOP':
+        exit(0)
     if Pass != ParentsPass:
         while Pass != ParentsPass:
             print('Enter wrong password wait 3 second to enter again, enter max 3 times')
@@ -34,7 +36,9 @@ def verifyPassParent(Pass, ParentsPass):
             if count == 3:
                 return False
             time.sleep(3)
-            Pass = input('Enter your password again to verify you are parents: ')
+            Pass = input('Enter your password again to verify you are parents or Enter STOP to stop program: ')
+            if Pass == 'STOP':
+                exit(0)
     print('YOU ARE ACCEPTED USING COMPUTER')
     return True
 
@@ -78,14 +82,13 @@ def Login(Pass, ParentsPass):
 
 
 def countTime():
-    count = 1
+    count = 0
     while count <= 5:
-        count = count + 1
         time.sleep(1)
+        count = count + 1
 
     if not StopThread:
         print('Shut DOWN')
-        exit(0)
 
 
 if __name__ == '__main__':
@@ -127,12 +130,13 @@ if __name__ == '__main__':
             p1.start()
             p2.start()
             count = 0
-            while True:
-                time.sleep(1)
-                count = count + 1
-                if count == 3:
-                    count = 1
-                    verifyPass = verifyPassParent(Pass, ParentsPass)
-                    if not verifyPass:
-                        print('SHUT DOWN')
-                        exit(0)
+            if StopThread:
+                while True:
+                    time.sleep(1)
+                    count = count + 1
+                    if count == 3:
+                        count = 1
+                        verifyPass = verifyPassParent(Pass, ParentsPass)
+                        if not verifyPass:
+                            print('SHUT DOWN')
+                            exit(0)
