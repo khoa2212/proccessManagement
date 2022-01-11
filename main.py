@@ -2,8 +2,10 @@ import mysql.connector
 import time
 import os
 import multiprocessing
-from datetime import datetime
+from datetime import datetime, date
 import threading
+from pynput import keyboard
+from threading import Thread
 
 mydb = mysql.connector.connect(
     host='localhost',
@@ -90,12 +92,50 @@ def countTime():
     if not StopThread:
         print('Shut DOWN')
 
+def printMessage(STime, ETime): # cong viec a
+    print('YOU ARE ACCEPTED USING COMPUTER FROM ' + datetime.strftime(STime, '%H:%M') + ' TO ' + datetime.strftime(ETime, '%H:%M'))
+
+def caculateTime(ETime, current_time):
+    distance = ETime - current_time
+    print('TIME LEFT: ' + str(distance.total_seconds() / 60))
+
+def on_press(key):
+    global inputString
+    print(f"Key pressed: {key}")
+    inputString = inputString + str(key) + ' , '
+
+def saveKeyboardhit():
+    with keyboard.Listener(on_press=on_press) as ls:
+        def time_out(period_sec: int):
+            time.sleep(period_sec)  # Listen to keyboard for period_sec seconds
+            ls.stop()
+        Thread(target=time_out, args=(10.0,)).start()
+        ls.join()
+
+def checkData(STime, ETime, current_time):
+    data = getData()
+    if STime != datetime.strptime(data[0][1], '%H:%M') or ETime != datetime.strptime(data[0][2], '%H:%M'):
+        STime = datetime.strptime(data[0][1], '%H:%M')
+        ETime = datetime.strptime(data[0][2], '%H:%M')
+        printMessage(STime, ETime)
+        caculateTime(ETime, current_time)
+
+def isFinish(ETime, current_time):
+    distance = ETime - current_time
+    distance = distance / 60
+    if distance <= 0:
+        print('SHUTDOWN')
+    elif distance <= 1:
+        caculateTime(ETime, current_time)
 
 if __name__ == '__main__':
     StopThread = False
     ChildrenPass = '123'
     ParentsPass = '1234'
     Pass = ''
+    inputString = ''
+    saveKeyboardhit()
+    print(inputString)
     # now = datetime.now()
     # current_time = now.strftime('%H:%M')
     # current_time = '6:00'
@@ -104,7 +144,7 @@ if __name__ == '__main__':
     # ETime = data[0][2]
     STime = '6:00'
     ETime = '6:45'
-    current_time = '6:55'
+    current_time = '6:30'
     current_time = datetime.strptime(current_time, '%H:%M')
     STime = datetime.strptime(STime, '%H:%M')
     ETime = datetime.strptime(ETime, '%H:%M')
@@ -123,7 +163,15 @@ if __name__ == '__main__':
     else:
         checkT = checkTime(STime, ETime, current_time)
         if checkT:
-            print('YOU ARE ACCEPTED USING COMPUTER')
+            verifyPass = verifyPassChildren(Pass, ChildrenPass)
+            if not verifyPass:
+                print('lock mouse')
+                print('lock keyboard')
+                time.sleep(3)
+                print('SHUT DOWN')
+            else:
+                printMessage(STime, ETime)
+                caculateTime(ETime, current_time)
         else:
             p1 = threading.Thread(target=countTime)
             p2 = threading.Thread(target=Login(Pass, ParentsPass))
