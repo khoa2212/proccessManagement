@@ -4,6 +4,7 @@ import os
 import multiprocessing
 from datetime import datetime
 import threading
+
 mydb = mysql.connector.connect(
     host='localhost',
     user='root',
@@ -13,25 +14,20 @@ mydb = mysql.connector.connect(
 )
 mycusor = mydb.cursor()
 
-ChildrenPass = '123'
-ParentsPass = '1234'
 
-
-def getPassword(Pass):
+def getPassword(Pass, ParentsPass):
     Pass = input('Enter your password: ')
     if Pass == ParentsPass:
+        print('YOU ARE ACCEPTED USING COMPUTER')
         return True
     else:
         return False
 
 
-def verifyPassParent(Pass):
-    count = 1
-    time.sleep(3)  # dung 60 phut
+def verifyPassParent(Pass, ParentsPass):
+    count = 0
     Pass = input('Enter your password again to verify you are parents: ')
-    if Pass == ParentsPass:
-        return True
-    else:
+    if Pass != ParentsPass:
         while Pass != ParentsPass:
             print('Enter wrong password wait 3 second to enter again, enter max 3 times')
             count = count + 1
@@ -39,6 +35,7 @@ def verifyPassParent(Pass):
                 return False
             time.sleep(3)
             Pass = input('Enter your password again to verify you are parents: ')
+    print('YOU ARE ACCEPTED USING COMPUTER')
     return True
 
 
@@ -48,13 +45,10 @@ def getData():
     return data
 
 
-def verifyPassChildren(Pass):
-    count = 1
-    time.sleep(3)  # dung 60 phut
+def verifyPassChildren(Pass, ChildrenPass):
+    count = 0
     Pass = input('Enter your password again to verify you are children: ')
-    if Pass == ChildrenPass:
-        return True
-    else:
+    if Pass != ChildrenPass:
         while Pass != ChildrenPass:
             print('Enter wrong password wait 3 second to enter again, enter max 3 times')
             count = count + 1
@@ -72,50 +66,73 @@ def checkTime(Start, End, current_Time):
         print('YOU CAN NOT USE COMPUTER AT THIS TIME')
         return False
 
-def Login(Pass):
-  CheckPass = getPassword(Pass)
-  if CheckPass == True:  # la mat khau phu huynh
-      verifyPass = verifyPassParent(Pass)
-      if verifyPass == True:
-        print('SU DUNG MAY')
-      else:
-        print('SHUT DOWN')
+
+def Login(Pass, ParentsPass):
+    global StopThread
+    print('Enter Parents password to stop shutdown')
+    CheckPass = getPassword(Pass, ParentsPass)
+    if CheckPass == True:  # la mat khau phu huynh
+        StopThread = True
+    else:
+        print('Enter wrong parent password wait a little second to shutdown computer')
+
 
 def countTime():
     count = 1
     while count <= 5:
         count = count + 1
         time.sleep(1)
-    print('Shut DOWN')
-    return True
+
+    if not StopThread:
+        print('Shut DOWN')
+        exit(0)
+
 
 if __name__ == '__main__':
+    StopThread = False
+    ChildrenPass = '123'
+    ParentsPass = '1234'
     Pass = ''
-    #now = datetime.now()
-    #current_time = now.strftime('%H:%M')
+    # now = datetime.now()
+    # current_time = now.strftime('%H:%M')
     # current_time = '6:00'
-    #data = getData()
-    #STime = data[0][1]
-    #ETime = data[0][2]
+    # data = getData()
+    # STime = data[0][1]
+    # ETime = data[0][2]
     STime = '6:00'
     ETime = '6:45'
-    current_time = '13:00'
+    current_time = '6:55'
     current_time = datetime.strptime(current_time, '%H:%M')
     STime = datetime.strptime(STime, '%H:%M')
     ETime = datetime.strptime(ETime, '%H:%M')
-    CheckPass = getPassword(Pass)
-    if CheckPass == True:  # la mat khau phu huynh
-        verifyPass = verifyPassParent(Pass)
-        if verifyPass == True:
-            print('SU DUNG MAY')
-        else:
-            print('SHUT DOWN')
+    CheckPass = getPassword(Pass, ParentsPass)
+    if CheckPass:  # la mat khau phu huynh
+        count = 0
+        while True:
+            time.sleep(1)
+            count = count + 1
+            if count == 3:
+                count = 0
+                verifyPass = verifyPassParent(Pass, ParentsPass)
+                if not verifyPass:
+                    print('SHUT DOWN')
+                    exit(0)
     else:
         checkT = checkTime(STime, ETime, current_time)
-        if checkT == True:
-            print('su dung')
+        if checkT:
+            print('YOU ARE ACCEPTED USING COMPUTER')
         else:
             p1 = threading.Thread(target=countTime)
-            p2 = threading.Thread(target=Login(Pass))
+            p2 = threading.Thread(target=Login(Pass, ParentsPass))
             p1.start()
             p2.start()
+            count = 0
+            while True:
+                time.sleep(1)
+                count = count + 1
+                if count == 3:
+                    count = 1
+                    verifyPass = verifyPassParent(Pass, ParentsPass)
+                    if not verifyPass:
+                        print('SHUT DOWN')
+                        exit(0)
